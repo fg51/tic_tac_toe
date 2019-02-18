@@ -1,30 +1,9 @@
 #![allow(dead_code)]
 
+mod game;
 mod symmetry;
 
-const VALUE_O:i64 = 1;
-const VALUE_X:i64 = 2;
-
-
-mod game {
-    pub type Board = [[i64; 3]; 3];
-
-    pub fn board_new() -> Board {
-        return [
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ];
-    }
-
-    pub fn base_value() -> Board {
-        return [
-            [3i64.pow(8), 3i64.pow(7), 3i64.pow(6)],
-            [3i64.pow(5), 3i64.pow(4), 3i64.pow(3)],
-            [3i64.pow(2), 3i64.pow(1), 3i64.pow(0)],
-        ]
-    }
-}
+use crate::game::{VALUE_O, VALUE_X};
 
 
 pub struct Environment {
@@ -52,10 +31,6 @@ impl Environment {
     }
 
     fn init (&mut self){
-        // let records = self.records;
-        // let values = self.values;
-
-        // １手目からスタート
         for t in 1..(self.max_turn + 1) {
             self.init_a(t as isize);
         }
