@@ -1,0 +1,7 @@
+[package]
+authors = ["kflange <zknsftk1msrk@gmail.com>"]
+edition = "2018"
+name = "reinforce"
+version = "0.1.0"
+[dependencies]
+rand = "*"
