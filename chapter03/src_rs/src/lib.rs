@@ -1,9 +1,14 @@
 #![allow(dead_code)]
 
+
+const VALUE_O:i64 = 1;
+const VALUE_X:i64 = 2;
+
+
 // mod agent;
 mod rotation;
 
-type Board = [[u32; 3]; 3];
+type Board = [[i64; 3]; 3];
 
 struct Board1 {}
 
@@ -21,23 +26,18 @@ pub struct Environment {
     // sente: Agent,  // 1st player
     // gote: Agent,  // 2nd player
     records: Vec<Vec<Board>>,  // 全状態の配置を格納する配列
-    values: Vec<u32>,  // 全状態値を格納する配列
+    values: Vec<Vec<i64>>,  // 全状態値を格納する配列
     base_value: [[u64; 3]; 3],  // 桁表
     turn: u32  // 手数
 }
 
 impl Environment {
     pub fn new() -> Environment {
-        let b: Board = [
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ];
-        let env = Environment {
+        let mut env = Environment {
             //sente: Agent::new(),  // 1st player
             //gote: Agent::new(),  // 2nd player
-            records: vec![vec![b]],
-            values: vec![0],
+            records: vec![vec![Board1::new()]],
+            values: vec![vec![0]],
             base_value: [
                 [3u64.pow(8), 3u64.pow(7), 3u64.pow(6)],
                 [3u64.pow(5), 3u64.pow(4), 3u64.pow(3)],
@@ -45,70 +45,132 @@ impl Environment {
             ],
             turn: 9,
         };
-        // env.init();
+        env.init();
         return env;
     }
 
-    //fn init (&self){
-    //    // let records = self.records;
-    //    // let values = self.values;
+    fn init (&mut self){
+        // let records = self.records;
+        // let values = self.values;
 
-    //    // １手目からスタート
-    //    // for( let t = 1; t <= this.T; t++ ){
-    //    for t in 1..(self.turn + 1) {
-    //        self.init_a(t as isize);
-    //    }
+        // １手目からスタート
+        for t in 1..(self.turn + 1) {
+            self.init_a(t as isize);
+        }
 
-    //    println!("全状態配置（this.records）");
-    //    println!("{:?}", self.records);
-    //    println!("全状態値（this.values）");
-    //    println!("{:?}", self.values);
-    //    println!("先手行動評価関数（this.sente.Qfunction）");
-    //    // println!("{:?}", self.sente.q_function);
-    //    println!("後手行動評価関数（this.gote.Qfunction）");
-    //    // println!("{:?}", self.gote.q_function);
-    //}
+        println!("全状態配置（self.records）");
+        for i in self.records.iter() {
+            println!("{:?}", i);
+        }
+        println!("全状態値（self.values）");
+        println!("{:?}", self.values);
+        // println!("先手行動評価関数（this.sente.Qfunction）");
+        // println!("{:?}", self.sente.q_function);
+        // println!("後手行動評価関数（this.gote.Qfunction）");
+        // println!("{:?}", self.gote.q_function);
+    }
 
-    //fn init_a(&self, t: isize) {
-    //    // let t_move = 0;
-    //    // let move_finish = 0;
+    fn init_a(&mut self, t: isize) {
+        // let t_move = 0;
+        // let move_finish = 0;
 
-    //    let mut b: Board = [
-    //        [0, 0, 0],
-    //        [0, 0, 0],
-    //        [0, 0, 0],
-    //    ];
-    //    // self.records[0][0] = *b; // n手目のマス目を初期化
+        // self.sente.Qfunction[ t ] = [];
+        // self.gote.Qfunction[ t ] = [];
+        self.init_b(t as usize);
+    }
 
-    //    //self.values.push(vec![]);  // n手目のマス目を初期化
+    fn init_b(&mut self, t: usize) {
+        for te in 0..self.records[t - 1].len() {
+            //打てるパターンはT-t個
+            for k in 0..(self.turn - t as u32 + 1) {
+                let mut record = Board1::new();
+                for i in 0..self.records[t - 1][te].len() {
+                    for j in 0..self.records[t - 1][te][0].len() {
+                        record[i][j] = self.records[t - 1][te][ i ][ j ];
+                    }
+                }
 
-    //    //// self.sente.Qfunction[ t ] = [];
-    //    //// self.gote.Qfunction[ t ] = [];
-    //    //self.init_b(t as usize);
-    //}
+                // ラインのチェック
+                let line_results = check_line(&record);
 
-    //fn init_b(&self, t: usize) {
-    //    //１手前の状態から次の手を指す
-    //    // for( let te = 0; te < records[ t-1 ].length; te++ ){
-    //    for te in 0..self.records[t - 1].len() {
-    //        //打てるパターンはT-t個
-    //        // for(let k=0; k<= this.T-t; k++){
-    //        for k in 0..(self.turn - t as u32 + 1) {
-    //            let mut record: Board;  // 新しいマス目の配置を格納する配列を準備
-    //            //１手前の配置をコピー
-    //            // for( let i = 0; i < records[ t-1 ][ te ].length; i++){
-    //            for i in 0..self.records[t - 1][te].len() {
-    //                // for( let j = 0; j < records[ t-1 ][ te ][ 0 ].length;j++ ){
-    //                for j in 0..self.records[t - 1][te][0].len() {
-    //                    record[i][j] = self.records[ t-1 ][ te ][ i ][ j ];
-    //                }
-    //            }
-    //            // ラインのチェック
-    //            let line_results = self.check_line(&record);
-    //        }
-    //    }
-    //}
+                // ライン数
+                let mut num_of_line = 0;
+                for row in line_results.iter() {
+                    for v in row.iter() {
+                        if *v != 0 {
+                            num_of_line += 1;
+                        }
+                    }
+                }
 
+                if num_of_line > 0 {
+                    continue;
+                }
+
+                // 未配置のマス目に手を指す
+                let mut blank = 0;
+                'block:
+                    for i in 0..record.len() {
+                        for j in 0..record[i].len() {
+                            if self.records[t - 1][te][i][j] == 0 {
+                                blank += 1;
+                            }
+                            if blank == k + 1 {
+                                if t % 2 == 1 {
+                                    record[i][j] = 1; //先手
+                                }
+                                if t % 2 == 0 {
+                                    record[i][j] = 2; //後手
+                                }
+                                break 'block;
+                            }
+                        }
+                    }
+
+                //状態値が最小値となる対称性と状態値を計算
+                let min_value_result = get_min_value(record);
+                let min_v = min_value_result.0;
+                let min_r = min_value_result.1;
+                let min_m = min_value_result.2;
+
+                //状態値の最小値の出現が初めての場合
+                if self.values.len() <= t {
+                        //Q値の初期値を与える
+                        //if(t%2==1) this.sente.Qfunction[ t ].push(0);
+                        //if(t%2==0) this.gote.Qfunction[ t ].push(0);
+
+
+                        //状態値として追加
+                        self.values.push(vec![min_v]);
+                        //配置として追加
+                        let _record = rotation_symmetry( record, min_r );
+                        let __record = mirror_symmetry( _record, min_m );
+                        self.records.push(vec![__record]);
+                } else {
+                    let mut is_1st = true;
+                    for i in self.values[t].iter() {
+                        if *i == min_v {
+                            is_1st = false;
+                        }
+                    }
+
+                    if is_1st {
+                        //Q値の初期値を与える
+                        //if(t%2==1) this.sente.Qfunction[ t ].push(0);
+                        //if(t%2==0) this.gote.Qfunction[ t ].push(0);
+
+
+                        //状態値として追加
+                        self.values[t].push(min_v);
+                        //配置として追加
+                        let _record = rotation_symmetry( record, min_r );
+                        let __record = mirror_symmetry( _record, min_m );
+                        self.records[t].push(__record);
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn check_line(record: &Board) -> Board {
@@ -146,12 +208,12 @@ fn check_line2(results: &mut Board, record: &Board) {
     for j in 0.. 3 {
          if record[0][j] * record[1][j] * record[2][j] == 1 {
             for i in 0..3 {
-                 results[i][j] = 1;
+                 results[i][j] = VALUE_O;
             }
          }
          if record[0][j] * record[1][j] * record[2][j] == 8 {
             for i in 0..3 {
-                 results[i][j] = 2;
+                 results[i][j] = VALUE_X;
             }
          }
     }
@@ -185,6 +247,14 @@ fn check_line4(results: &mut Board, record: &Board) {
         }
     }
 }
+
+
+fn cal_num_of_line(xs: [[i64; 3]; 3]) -> i64 {
+    return xs.iter()
+        .fold(0, |sum, row|
+              sum + row.iter().fold(0, |sum, v| sum + v));
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -261,4 +331,153 @@ mod tests {
             }
         }
     }
+}
+
+
+//対称反転
+fn mirror_symmetry(source: Board, r: i32) -> Board {
+    let num = 3;
+
+    let mut results = Board1::new();
+
+    match r {
+        0 => {
+            for (i, row) in source.iter().enumerate() {
+                for (j, v) in row.iter().enumerate() {
+                    results[i][j] = *v;
+                }
+            }
+        },
+        1 => {  // 横軸
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[num - 1 - i][j];
+                }
+            }
+        },
+        2 => {  // 縦軸
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[i][num - 1 - j];
+                }
+            }
+        },
+        3 => {  // 右上斜軸
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[num - 1 - j][num - 1 - i];
+                }
+            }
+        },
+        4 => {  // 右下斜軸
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[j][i];
+                }
+            }
+        },
+        _ => {
+        },
+    }
+    return results;
+}
+
+//反時計回り
+fn rotation_symmetry(source: Board, r: i32) -> Board {
+    // let num = 3 - 1;
+    let num = 3;
+
+    let mut results = Board1::new();
+
+    match r {
+        0 => {
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[i][j];
+                }
+            }
+        },
+        1 => { // 90 [deg]
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[j][num - 1 - i];
+                }
+            }
+        },
+        2 => { // 180 [deg]
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[num - 1 - i][num - 1- j];
+                }
+            }
+        },
+        3 => { // 270 [deg]
+            for i in 0..num {
+                for j in 0..num {
+                    results[i][j] = source[num - 1 - j][i];
+                }
+            }
+        },
+        _ => {
+        }
+    }
+    return results;
+}
+
+//点対称
+fn point_symmetry(source: Board) -> Board {
+    let mut results = Board1::new();
+
+    results[0][0] = source[2][2]; //8
+    results[0][1] = source[2][1]; //7
+    results[0][2] = source[2][0]; //6
+
+    results[1][0] = source[1][2]; //5
+    results[1][1] = source[1][1]; //4
+    results[1][2] = source[1][0]; //3
+
+    results[2][0] = source[0][2]; //2
+    results[2][1] = source[0][1]; //1
+    results[2][2] = source[0][0]; //0
+
+    return results;
+}
+
+//状態値を計算する関数
+fn get_state_value(record: Board) -> i64 {
+    let base_values = [
+        [3i64.pow(8), 3i64.pow(7), 3i64.pow(6)],
+        [3i64.pow(5), 3i64.pow(4), 3i64.pow(3)],
+        [3i64.pow(2), 3i64.pow(1), 3i64.pow(0)],
+    ];
+
+    let mut v = 0;
+    for i in 0..3 {
+        for j in 0..3 {
+            v += record[i][j] * base_values[i][j];
+        }
+    }
+    return v;
+}
+
+//状態値が最小値となる対称性と状態値を計算
+fn get_min_value(record: Board) -> (i64, i32, i32) {
+    let mut min_v = 3i64.pow(10);
+    let mut min_r = 0;
+    let mut min_m = 0;
+
+    for r in 0..4 {
+        for m in 0..5 {
+            let _record = rotation_symmetry(record, r);
+            let __record = mirror_symmetry(_record, m);
+            let v = get_state_value(__record);
+            //より小さい状態値であれば更新
+            if v < min_v {
+                min_v = v;
+                min_r = r;
+                min_m = m;
+            }
+        }
+    }
+    return (min_v, min_r, min_m);
 }
