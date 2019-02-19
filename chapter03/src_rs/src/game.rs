@@ -4,7 +4,23 @@ pub const VALUE_X:i64 = 2;
 const TOTAL_O: i64 = 1 * 1 * 1;
 const TOTAL_X: i64 = 2 * 2 * 2;
 
+
 pub type Board = [[i64; 3]; 3];
+
+pub struct Position {
+    pub row: usize,
+    pub col: usize,
+}
+
+impl Position {
+    pub fn new(i: usize, j: usize) -> Self {
+        return Self {
+            row: i,
+            col: j,
+        };
+    }
+}
+
 
 pub fn board_new() -> Board {
     return [

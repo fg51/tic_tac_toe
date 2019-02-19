@@ -2,13 +2,14 @@
 
 mod game;
 mod symmetry;
+mod agent;
 
-use crate::game::{VALUE_O, VALUE_X};
+use self::game::{VALUE_O, VALUE_X};
 
 
 pub struct Environment {
-    // player1: Agent,  // 1st player
-    // player2: Agent,  // 2nd player
+    player1: agent::Agent,
+    player2: agent::Agent,
     records: Vec<Vec<game::Board>>,  // all patterns
     values: Vec<Vec<i64>>,  // all state values
     base_value: game::Board,
@@ -19,8 +20,8 @@ pub struct Environment {
 impl Environment {
     pub fn new() -> Environment {
         let mut env = Environment {
-            //player1: Agent::new(),  // 1st player
-            //player2: Agent::new(),  // 2nd player
+            player1: agent::Agent::new(),  // 1st player
+            player2: agent::Agent::new(),  // 2nd player
             records: vec![vec![game::board_new()]],
             values: vec![vec![0]],
             base_value: game::base_value(),
@@ -99,6 +100,93 @@ impl Environment {
                         min_m ));
             }
         }
+    }
+
+    fn learn(&mut self, num: usize) -> (i64, i64, i64) {
+        //println!("random learn", result1.win, result1.lose, result1.draw, result1.win+result1.lose+result1.draw);
+        let mut win = 0;
+        let mut lose = 0;
+        let mut draw = 0;
+
+        //for(let n=1; n<=N; n++){
+        for _ in 1..(num + 1) {
+            //初期配置
+            let mut record = game::board_new();
+
+            //if parentID { self.createTable(record, null, parentID, null, true, true);
+
+            //過去の手番号配列
+            let mut te_nums = vec![0];
+            for t in 1..(self.max_turn + 1) {
+
+                //次の手を選択
+                let nextMove = if game::is_first_player(t as usize) {
+                    self.player1.select_next_move(t as i32, &record, self.values)
+                } else {
+                    self.player2.select_next_move(t as i32, &record, self.values)
+                };
+                record[nextMove.0][nextMove.1] = if game::is_first_player(t as usize) {
+                    VALUE_O
+                } else {
+                    VALUE_X
+                };
+
+
+                //状態値が最小値となる対称性と状態値を計算
+                let minValueResult = to_min_state_values(record);
+                let min_v = minValueResult.0;
+                //手番号
+                //let te_num = self.values[t].indexOf(min_v);
+                //if( te_num == -1 ) console.log("エラー1", t, min_v );
+
+                let mut is_1st_min = false;
+                let mut te_num = 0;
+                for (i, v) in self.values[t as usize].iter().enumerate() {
+                    if *v == min_v {
+                        is_1st_min = true;
+                        te_num = i;
+                    }
+                }
+                if is_1st_min == false {
+                    println!("ERROR 1: {} {}", t, min_v);
+                }
+
+                //過去の手番号配列に格納
+                te_nums.push(te_num);
+
+                //表の生成
+                //if( parentID ) this.createTable(record, null, parentID, null, true, true);
+
+                let num_of_line = game::count_line(game::to_lined_board(&record));
+
+                //報酬の設定
+                let reward = if num_of_line > 0 {1.0} else {0.0};
+
+                //行動評価関数の更新
+                if game::is_first_player(t as usize) {
+                    self.player1.update_q_function(t as usize, te_num, reward);
+                } else {
+                    self.player2.update_q_function(t as usize, te_num, reward);
+                }
+
+                //勝敗が決定した場合の処理
+                if num_of_line > 0 {
+                    if game::is_first_player(t as usize) {
+                        win += 1;
+                        self.player2.give_penalty(t as usize, te_nums);
+                    } else {
+                        lose += 1;
+                        self.player1.give_penalty(t as usize, te_nums);
+                    }
+                    break;
+                }
+                //最後まで勝敗が決まらなければ
+                if t == 9 {
+                    draw += 1;
+                }
+            }
+        }
+        return (win, lose, draw);
     }
 }
 
