@@ -1,44 +1,43 @@
-    use super::game;
+use super::game;
 
-//対称反転
-pub fn mirror_symmetry(source: game::Board, r: i64) -> game::Board {
+pub fn mirror_symmetry(src: game::Board, r: i64) -> game::Board {
     let num = 3;
 
     let mut results = game::board_new();
 
     match r {
         0 => {
-            for (i, row) in source.iter().enumerate() {
+            for (i, row) in src.iter().enumerate() {
                 for (j, v) in row.iter().enumerate() {
                     results[i][j] = *v;
                 }
             }
         },
-        1 => {  // 横軸
+        1 => {  // row line
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[num - 1 - i][j];
+                    results[i][j] = src[num - 1 - i][j];
                 }
             }
         },
-        2 => {  // 縦軸
+        2 => {  // column line
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[i][num - 1 - j];
+                    results[i][j] = src[i][num - 1 - j];
                 }
             }
         },
-        3 => {  // 右上斜軸
+        3 => {  // upper right diagonal line
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[num - 1 - j][num - 1 - i];
+                    results[i][j] = src[num - 1 - j][num - 1 - i];
                 }
             }
         },
-        4 => {  // 右下斜軸
+        4 => {  // lower right diagonal line
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[j][i];
+                    results[i][j] = src[j][i];
                 }
             }
         },
@@ -48,8 +47,8 @@ pub fn mirror_symmetry(source: game::Board, r: i64) -> game::Board {
     return results;
 }
 
-//反時計回り
-pub fn rotation_symmetry(source: game::Board, r: i64) -> game::Board {
+// inverted rotation
+pub fn rotation_symmetry(src: game::Board, r: i64) -> game::Board {
     // let num = 3 - 1;
     let num = 3;
 
@@ -59,28 +58,28 @@ pub fn rotation_symmetry(source: game::Board, r: i64) -> game::Board {
         0 => {
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[i][j];
+                    results[i][j] = src[i][j];
                 }
             }
         },
         1 => { // 90 [deg]
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[j][num - 1 - i];
+                    results[i][j] = src[j][num - 1 - i];
                 }
             }
         },
         2 => { // 180 [deg]
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[num - 1 - i][num - 1- j];
+                    results[i][j] = src[num - 1 - i][num - 1- j];
                 }
             }
         },
         3 => { // 270 [deg]
             for i in 0..num {
                 for j in 0..num {
-                    results[i][j] = source[num - 1 - j][i];
+                    results[i][j] = src[num - 1 - j][i];
                 }
             }
         },
@@ -90,21 +89,20 @@ pub fn rotation_symmetry(source: game::Board, r: i64) -> game::Board {
     return results;
 }
 
-//点対称
-pub fn point_symmetry(source: game::Board) -> game::Board {
+pub fn point_symmetry(src: game::Board) -> game::Board {
     let mut result = game::board_new();
 
-    result[0][0] = source[2][2]; //8
-    result[0][1] = source[2][1]; //7
-    result[0][2] = source[2][0]; //6
+    result[0][0] = src[2][2]; //8
+    result[0][1] = src[2][1]; //7
+    result[0][2] = src[2][0]; //6
 
-    result[1][0] = source[1][2]; //5
-    result[1][1] = source[1][1]; //4
-    result[1][2] = source[1][0]; //3
+    result[1][0] = src[1][2]; //5
+    result[1][1] = src[1][1]; //4
+    result[1][2] = src[1][0]; //3
 
-    result[2][0] = source[0][2]; //2
-    result[2][1] = source[0][1]; //1
-    result[2][2] = source[0][0]; //0
+    result[2][0] = src[0][2]; //2
+    result[2][1] = src[0][1]; //1
+    result[2][2] = src[0][0]; //0
 
     return result;
 }

@@ -1,6 +1,9 @@
 pub const VALUE_O:i64 = 1;
 pub const VALUE_X:i64 = 2;
 
+const TOTAL_O: i64 = 1 * 1 * 1;
+const TOTAL_X: i64 = 2 * 2 * 2;
+
 pub type Board = [[i64; 3]; 3];
 
 pub fn board_new() -> Board {
@@ -20,77 +23,171 @@ pub fn base_value() -> Board {
     ]
 }
 
-pub fn check_line(record: Board) -> Board {
-    let mut results: Board = [
-        [0, 0, 0, ],
-        [0, 0, 0, ],
-        [0, 0, 0, ],
-    ];
-
-    check_line1(&mut results, &record); // 横列
-    check_line2(&mut results, &record); // 縦列
-    check_line3(&mut results, &record); // 右上斜め
-    check_line4(&mut results, &record); // 右下斜め
+pub fn to_lined_board(record: &Board) -> Board {
+    let mut results = board_new();
+    to_lined_board_row(&mut results, record);
+    to_lined_board_column(&mut results, record);
+    to_lined_board_upper_right_diagonal(&mut results, record);
+    to_lined_board_lower_right_diagonal(&mut results, record);
     return results;
 }
 
-// 横列
-fn check_line1(results: &mut Board, record: &Board) {
-    for i in 0..3 {
-        if record[i][0] * record[i][1] * record[i][2] == 1 {
-            for j in 0..3 {
-                results[i][j] = 1;
-            }
-        }
-        if record[i][0] * record[i][1] * record[i][2] == 8 {
-            for j in 0..3 {
-                results[i][j] = 2;
-            }
+fn to_lined_board_row(results: &mut Board, record: &Board) {
+    const SIZE: usize  = 3;
+
+    for i in 0..SIZE {
+        match record[i].iter().fold(1, |sum, x| sum * x) {
+            TOTAL_O => {
+                for j in 0..SIZE {
+                    results[i][j] = VALUE_O;
+                }
+            },
+            TOTAL_X => {
+                for j in 0..SIZE {
+                    results[i][j] = VALUE_X;
+                }
+            },
+            _ => {
+            },
         }
     }
 }
 
-// 縦列
-fn check_line2(results: &mut Board, record: &Board) {
-    for j in 0.. 3 {
-         if record[0][j] * record[1][j] * record[2][j] == 1 {
-            for i in 0..3 {
-                 results[i][j] = VALUE_O;
-            }
+fn to_lined_board_column(results: &mut Board, record: &Board) {
+    const SIZE: usize  = 3;
+    for j in 0..SIZE {
+         match record[0][j] * record[1][j] * record[2][j] {
+            TOTAL_O => {
+                for i in 0..SIZE {
+                     results[i][j] = VALUE_O;
+                }
+            },
+            TOTAL_X => {
+               for i in 0..SIZE {
+                    results[i][j] = VALUE_X;
+               }
+            },
+            _ => {
+            },
          }
-         if record[0][j] * record[1][j] * record[2][j] == 8 {
-            for i in 0..3 {
-                 results[i][j] = VALUE_X;
+    }
+}
+
+
+fn to_lined_board_upper_right_diagonal(results: &mut Board, record: &Board) {
+    const SIZE: usize = 3;
+    match record[0][0] * record[1][1] * record[2][2] {
+        TOTAL_O => {
+            for i in 0..SIZE {
+                results[i][i] = VALUE_O;
             }
-         }
+        },
+        TOTAL_X => {
+            for i in 0..SIZE {
+                results[i][i] = VALUE_X;
+            }
+        },
+        _ => {
+        },
+    }
+}
+
+fn to_lined_board_lower_right_diagonal(results: &mut Board, record: &Board) {
+    const SIZE: usize = 3;
+
+    match record[2][0] * record[1][1] * record[0][2] {
+        TOTAL_O => {
+            for i in 0..SIZE {
+                results[SIZE - 1 - i][i] = 1;
+            }
+        },
+        TOTAL_X => {
+            for i in 0..SIZE {
+                results[SIZE - 1 - i][i] = 2;
+            }
+        },
+        _ => {
+        },
     }
 }
 
 
-// 右上斜め
-fn check_line3(results: &mut Board, record: &Board) {
-    if record[0][0] * record[1][1] * record[2][2] == 1  {
-        for i in 0..3 {
-            results[i][i] = 1;
-        }
-    }
-    if record[0][0] * record[1][1] * record[2][2] == 8 {
-        for i in 0..3 {
-            results[i][i] = 2;
-        }
-    }
+pub fn count_line(xs: Board) -> i64 {
+    return xs.iter()
+        .fold(0, |sum, row|
+              sum + row.iter().fold(0, |sum, v| sum + v));
 }
 
-// 右下斜め
-fn check_line4(results: &mut Board, record: &Board) {
-    if record[2][0] * record[1][1] * record[0][2] == 1 {
-        for i in 0..3 {
-            results[3 - 1 - i][i] = 1;
+pub fn is_first_player(turn: usize) -> bool {
+    return turn % 2 == 1;
+}
+
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn to_lined_board() {
+        to_lined_board1();
+        to_lined_board2();
+        to_lined_board3();
+    }
+
+    fn to_lined_board1() {
+        let b = [
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+        ];
+        for i in &super::to_lined_board(&b) {
+            for v in i {
+                assert_eq!(*v, 0);
+            }
         }
     }
-    if record[2][0] * record[1][1] * record[0][2] == 8 {
-        for i in 0..3 {
-            results[3 - 1 - i][i] = 2;
+
+    fn to_lined_board2() {
+        let b = [
+            [1, 1, 1],
+            [0, 0, 0],
+            [0, 0, 0],
+        ];
+        let xs = super::to_lined_board(&b);
+        for v in &xs[0] {
+            assert_eq!(*v, 1);
+        }
+        for v in &xs[1] {
+            assert_eq!(*v, 0);
+        }
+        for v in &xs[2] {
+            assert_eq!(*v, 0);
+        }
+    }
+
+    fn to_lined_board3() {
+        let src = [
+            [0, 0, 1],
+            [0, 1, 0],
+            [1, 0, 0],
+        ];
+        let xs = super::to_lined_board(&src);
+        for (i, row) in xs.iter().enumerate() {
+            for (j, v) in row.iter().enumerate() {
+                match i {
+                    0 => match j {
+                        2 => assert_eq!(*v, 1),
+                        _ => assert_eq!(*v, 0),
+                    },
+                    1 => match j {
+                        1 => assert_eq!(*v, 1),
+                        _ => assert_eq!(*v, 0),
+                    }
+                    2 => match j {
+                        0 => assert_eq!(*v, 1),
+                        _ => assert_eq!(*v, 0),
+                    }
+                    _ => assert_eq!(*v, 0),
+                }
+            }
         }
     }
 }
