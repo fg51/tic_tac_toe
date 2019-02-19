@@ -3,6 +3,7 @@ extern crate rand;
 use super::game;
 use super::game::{VALUE_O, VALUE_X, Board};
 
+#[allow(dead_code)]
 enum Method {
     Random,
     EpsilonGreedy,
@@ -12,7 +13,7 @@ enum Method {
 type Position = (usize, usize);
 
 pub struct Agent {
-    q_functions: Vec<Vec<f64>>,  // behavior evaluation function
+    pub q_functions: Vec<Vec<f64>>,  // behavior evaluation function
     eta: f64,  // learning ratio
     gamma: f64,  // reduce ratio
     lose_penalty: f64,
@@ -37,7 +38,15 @@ impl Agent {
         }
     }
 
-    pub fn select_next_move(&mut self, turn: i32, record: &Board, state_values: Vec<Vec<i64>>) -> (usize, usize) {
+    pub fn add_blank_q_functions(&mut self) {
+        self.q_functions.push(vec![]);
+    }
+
+    pub fn set_use_boltzman(&mut self) {
+       self.select_method = Method::Boltzman;
+    }
+
+    pub fn select_next_move(&mut self, turn: usize, record: &Board, state_values: &Vec<Vec<i64>>) -> (usize, usize) {
 
         match self.select_method {
             Method::EpsilonGreedy if self.epsilon > rand::random() => {
@@ -58,8 +67,7 @@ impl Agent {
 
 
     //Epsilon-Greedy method
-    fn select_next_move_use_epsilon(&mut self, t: i32, record: &Board, state_values: &Vec<Vec<i64>>) -> Position {
-        let t = t as usize;
+    fn select_next_move_use_epsilon(&mut self, t: usize, record: &Board, state_values: &Vec<Vec<i64>>) -> Position {
         let mut max_r = -10000_f64;
         let mut row = 0;
         let mut col = 0;
@@ -99,7 +107,7 @@ impl Agent {
                         }
                     }
                     if has_value == false {
-                        println!("ERROR 0 {0} {1}", t, min_v);
+                        println!("ERROR 0: {0} {1}", t, min_v);
                     }
 
                     let q = self.q_functions[t][index];
@@ -116,7 +124,7 @@ impl Agent {
         return (row, col);
     }
 
-    fn select_next_move_use_boltzman(&mut self, _: i32, _: &Board) -> Position {
+    fn select_next_move_use_boltzman(&mut self, _: usize, _: &Board) -> Position {
         let mut _i: usize = 0;
         let mut _j: usize = 0;
 
@@ -138,29 +146,38 @@ impl Agent {
         return (_i, _j);
     }
 
-    pub fn update_q_function(&self, t: usize, te_num: usize, r: f64){
-        let mut maxR = -1000.0;
-        if t >= 8 || r > 0.0 {
-            maxR = 0.0;
+    pub fn update_q_function(&mut self, turn: usize, te_num: usize, r: f64){
+        let max_r = if turn >= 8 || r > 0.0 {
+            0.0
         } else {
-            for i in 0..self.q_functions[t + 2].len() {
-                if self.q_functions[t + 2][i] > maxR {
-                    maxR = self.q_functions[t + 2][i];
+            let mut max_r = -1000.0;
+            for i in 0..self.q_functions[turn + 2].len() {
+                if self.q_functions[turn + 2][i] > max_r {
+                    max_r = self.q_functions[turn + 2][i];
                 }
             }
-        }
-        let dQ = self.q_functions[t][te_num] - (r + self.gamma * maxR);
-        self.q_functions[t][te_num] = self.q_functions[t][te_num] - self.eta * dQ;
+            max_r
+        };
+        let diff = self.q_functions[turn][te_num] - (r + self.gamma * max_r);
+        self.q_functions[turn][te_num] -= self.eta * diff;
     }
 
     pub fn give_penalty(&mut self, turn: usize , te_nums: Vec<usize>) {
+        //println!("penalty turn: {}, te_nums: {:?}", turn, te_nums);
         let mut m = 1;
-        // TODO
-        //for( let t = T - 1 ; t >= 1; t -= 2  ){
-        for i in 1..turn - 1 {
-            self.q_functions[i][te_nums[i]] += self.lose_penalty * self.eta * (self.gamma.powi(m));
+        for i in 0.. {
+            //println!("i: {}", i);
+            let t = turn - 1 - i * 2;
+            let t = if t <= turn {t} else {0};
+            if t < 1 {
+                break
+            }
+            // println!("[t]: {}", t);
+            // println!("te_nums[t]: {:?}", te_nums[t]);
+            self.q_functions[t][te_nums[t]] += self.lose_penalty * self.eta * (self.gamma.powi(m));
             m += 1;
         }
+        //println!("penalty end");
     }
 }
 

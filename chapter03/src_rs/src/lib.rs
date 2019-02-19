@@ -1,10 +1,8 @@
-#![allow(dead_code)]
-
 mod game;
 mod symmetry;
 mod agent;
 
-use self::game::{VALUE_O, VALUE_X};
+use game::{from_turn_to_player_value, is_first_player};
 
 
 pub struct Environment {
@@ -12,8 +10,8 @@ pub struct Environment {
     player2: agent::Agent,
     records: Vec<Vec<game::Board>>,  // all patterns
     values: Vec<Vec<i64>>,  // all state values
-    base_value: game::Board,
-    max_turn: u32,
+    // base_value: game::Board,
+    max_turn: usize,
 }
 
 
@@ -24,7 +22,7 @@ impl Environment {
             player2: agent::Agent::new(),  // 2nd player
             records: vec![vec![game::board_new()]],
             values: vec![vec![0]],
-            base_value: game::base_value(),
+            //base_value: game::base_value(),
             max_turn: 9,
         };
         for _ in 0..env.max_turn {
@@ -32,13 +30,20 @@ impl Environment {
             env.records.push(vec![]);
         }
         env.init();
+        env.player1.set_use_boltzman();
         return env;
     }
 
-    fn init (&mut self){
+    fn init(&mut self){
         for t in 1..(self.max_turn + 1) {
-            self.init_a(t as usize);
+            // let t_move = 0;
+            // let move_finish = 0;
+
+            self.player1.add_blank_q_functions();
+            self.player2.add_blank_q_functions();
+            self.init_core(t as usize);
         }
+
         println!("ALL PATTERN (self.records)");
         for i in self.records.iter() {
             println!("{:?}", i);
@@ -47,28 +52,18 @@ impl Environment {
         for i in self.values.iter() {
             println!("{:?}", i);
         }
-        // println!("player1: behavior evaluation function (self.player1.q_function)");
-        // println!("{:?}", self.player1.q_functions);
-        // println!("player2: behavior evaluation function (self.player2.q_function)");
-        // println!("{:?}", self.player2.q_functions);
+        println!("player1: behavior evaluation function (self.player1.q_function)");
+        println!("{:?}", self.player1.q_functions);
+        println!("player2: behavior evaluation function (self.player2.q_function)");
+        println!("{:?}", self.player2.q_functions);
     }
 
-    fn init_a(&mut self, turn: usize) {
-        // let t_move = 0;
-        // let move_finish = 0;
-
-        // self.player1.q_functions[turn] = [];
-        // self.player2.q_functions[turn] = [];
-        self.init_b(turn);
-    }
-
-    fn init_b(&mut self, turn: usize) {
-        // 1: 1st player, 2: 2nd player
-        let v = if game::is_first_player(turn) { VALUE_O } else { VALUE_X };
+    fn init_core(&mut self, turn: usize) {
+        let v = from_turn_to_player_value(turn);
 
         for i in 0..self.records[turn - 1].len() {
             // The number of patterns is T - t.
-            for j in 0..(self.max_turn - turn as u32 + 1) {
+            for j in 0..(self.max_turn - turn + 1) {
                 let mut record = self.records[turn - 1][i];
                 let num_of_line = game::count_line(game::to_lined_board(&record));
                 if num_of_line > 0 {
@@ -86,12 +81,13 @@ impl Environment {
                 if is_1st_min_state_value(min_v, &self.values[turn])  == false {
                     continue;
                 }
+
                 // init Q values
-                //if is_first_player(turn) {
-                //    self.player1.q_functions[turn].push(0);
-                //} else {
-                //    self.gote.q_functions[turn].push(0);
-                //}
+                if is_first_player(turn) {
+                    self.player1.q_functions[turn].push(0.0);
+                } else {
+                    self.player2.q_functions[turn].push(0.0);
+                }
 
                 self.values[turn].push(min_v);
                 self.records[turn].push(
@@ -102,91 +98,85 @@ impl Environment {
         }
     }
 
-    fn learn(&mut self, num: usize) -> (i64, i64, i64) {
-        //println!("random learn", result1.win, result1.lose, result1.draw, result1.win+result1.lose+result1.draw);
+    pub fn learn(&mut self, num: usize) -> (i64, i64, i64) {
         let mut win = 0;
         let mut lose = 0;
         let mut draw = 0;
 
-        //for(let n=1; n<=N; n++){
         for _ in 1..(num + 1) {
-            //初期配置
             let mut record = game::board_new();
 
             //if parentID { self.createTable(record, null, parentID, null, true, true);
 
-            //過去の手番号配列
-            let mut te_nums = vec![0];
-            for t in 1..(self.max_turn + 1) {
+            let mut turn_history = vec![0];
+            for turn in 1..(self.max_turn + 1) {
+                let turn = turn as usize;
 
-                //次の手を選択
-                let nextMove = if game::is_first_player(t as usize) {
-                    self.player1.select_next_move(t as i32, &record, self.values)
+                //println!("next_move");
+                let next_move = if is_first_player(turn as usize) {
+                    self.player1.select_next_move(turn, &record, &self.values)
                 } else {
-                    self.player2.select_next_move(t as i32, &record, self.values)
+                    self.player2.select_next_move(turn, &record, &self.values)
                 };
-                record[nextMove.0][nextMove.1] = if game::is_first_player(t as usize) {
-                    VALUE_O
-                } else {
-                    VALUE_X
-                };
+                record[next_move.0][next_move.1] = from_turn_to_player_value(turn);
 
+                //println!("to_min_state_values");
+                let min_value_result = to_min_state_values(record);
+                let min_v = min_value_result.0;
 
-                //状態値が最小値となる対称性と状態値を計算
-                let minValueResult = to_min_state_values(record);
-                let min_v = minValueResult.0;
-                //手番号
-                //let te_num = self.values[t].indexOf(min_v);
-                //if( te_num == -1 ) console.log("エラー1", t, min_v );
+                let (te_num, has_min_value) = Self::search_te_number(min_v, &self.values[turn]);
 
-                let mut is_1st_min = false;
-                let mut te_num = 0;
-                for (i, v) in self.values[t as usize].iter().enumerate() {
-                    if *v == min_v {
-                        is_1st_min = true;
-                        te_num = i;
-                    }
-                }
-                if is_1st_min == false {
-                    println!("ERROR 1: {} {}", t, min_v);
+                if has_min_value == false {
+                    println!("ERROR 1: {} {}", turn, min_v);
                 }
 
-                //過去の手番号配列に格納
-                te_nums.push(te_num);
+                // 過去の手番号配列に格納
+                turn_history.push(te_num);
 
-                //表の生成
                 //if( parentID ) this.createTable(record, null, parentID, null, true, true);
 
+                //println!("count_line");
                 let num_of_line = game::count_line(game::to_lined_board(&record));
 
-                //報酬の設定
                 let reward = if num_of_line > 0 {1.0} else {0.0};
 
-                //行動評価関数の更新
-                if game::is_first_player(t as usize) {
-                    self.player1.update_q_function(t as usize, te_num, reward);
+                //println!("update_q_function");
+                if is_first_player(turn) {
+                    self.player1.update_q_function(turn, te_num, reward);
                 } else {
-                    self.player2.update_q_function(t as usize, te_num, reward);
+                    self.player2.update_q_function(turn, te_num, reward);
                 }
 
-                //勝敗が決定した場合の処理
+                //println!("win lose");
                 if num_of_line > 0 {
-                    if game::is_first_player(t as usize) {
+                    //println!("turn: {}", turn);
+                    //println!("turn_history: {:?}", turn_history);
+                    if is_first_player(turn) {
                         win += 1;
-                        self.player2.give_penalty(t as usize, te_nums);
+                        self.player2.give_penalty(turn, turn_history);
                     } else {
                         lose += 1;
-                        self.player1.give_penalty(t as usize, te_nums);
+                        self.player1.give_penalty(turn, turn_history);
                     }
                     break;
                 }
-                //最後まで勝敗が決まらなければ
-                if t == 9 {
+
+                if turn == 9 {
                     draw += 1;
                 }
+                //println!("loop end");
             }
         }
         return (win, lose, draw);
+    }
+
+    fn search_te_number(min_v: i64, values: &Vec<i64>) -> (usize, bool) {
+        for (i, v) in values.iter().enumerate() {
+            if *v == min_v {
+                return (i, true);
+            }
+        }
+        return (0, false);
     }
 }
 
@@ -205,12 +195,7 @@ mod tests {
 
 
 fn to_state_value(record: game::Board) -> i64 {
-    let b = 3i64;
-    let base_values = [
-        [b.pow(8), b.pow(7), b.pow(6)],
-        [b.pow(5), b.pow(4), b.pow(3)],
-        [b.pow(2), b.pow(1), b.pow(0)],
-    ];
+    let base_values = game::base_value();
 
     let mut v = 0;
     for (irow, jrow) in base_values.iter().zip(record.iter()) {
@@ -269,3 +254,4 @@ fn is_1st_min_state_value(min_v: i64, values: &Vec<i64>) -> bool{
     }
     return true;
 }
+

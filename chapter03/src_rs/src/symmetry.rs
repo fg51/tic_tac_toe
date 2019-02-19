@@ -89,6 +89,7 @@ pub fn rotation_symmetry(src: game::Board, r: i64) -> game::Board {
     return results;
 }
 
+#[allow(dead_code)]
 pub fn point_symmetry(src: game::Board) -> game::Board {
     let mut result = game::board_new();
 

@@ -1,5 +1,7 @@
-pub const VALUE_O:i64 = 1;
-pub const VALUE_X:i64 = 2;
+pub const VALUE_O: i64 = 1;
+pub const VALUE_X: i64 = 2;
+
+const SIZE: usize  = 3;
 
 const TOTAL_O: i64 = 1 * 1 * 1;
 const TOTAL_X: i64 = 2 * 2 * 2;
@@ -7,21 +9,8 @@ const TOTAL_X: i64 = 2 * 2 * 2;
 
 pub type Board = [[i64; 3]; 3];
 
-pub struct Position {
-    pub row: usize,
-    pub col: usize,
-}
 
-impl Position {
-    pub fn new(i: usize, j: usize) -> Self {
-        return Self {
-            row: i,
-            col: j,
-        };
-    }
-}
-
-
+#[allow(dead_code)]
 pub fn board_new() -> Board {
     return [
         [0, 0, 0],
@@ -49,8 +38,6 @@ pub fn to_lined_board(record: &Board) -> Board {
 }
 
 fn to_lined_board_row(results: &mut Board, record: &Board) {
-    const SIZE: usize  = 3;
-
     for i in 0..SIZE {
         match record[i].iter().fold(1, |sum, x| sum * x) {
             TOTAL_O => {
@@ -70,7 +57,6 @@ fn to_lined_board_row(results: &mut Board, record: &Board) {
 }
 
 fn to_lined_board_column(results: &mut Board, record: &Board) {
-    const SIZE: usize  = 3;
     for j in 0..SIZE {
          match record[0][j] * record[1][j] * record[2][j] {
             TOTAL_O => {
@@ -91,7 +77,6 @@ fn to_lined_board_column(results: &mut Board, record: &Board) {
 
 
 fn to_lined_board_upper_right_diagonal(results: &mut Board, record: &Board) {
-    const SIZE: usize = 3;
     match record[0][0] * record[1][1] * record[2][2] {
         TOTAL_O => {
             for i in 0..SIZE {
@@ -109,8 +94,6 @@ fn to_lined_board_upper_right_diagonal(results: &mut Board, record: &Board) {
 }
 
 fn to_lined_board_lower_right_diagonal(results: &mut Board, record: &Board) {
-    const SIZE: usize = 3;
-
     match record[2][0] * record[1][1] * record[0][2] {
         TOTAL_O => {
             for i in 0..SIZE {
@@ -136,6 +119,10 @@ pub fn count_line(xs: Board) -> i64 {
 
 pub fn is_first_player(turn: usize) -> bool {
     return turn % 2 == 1;
+}
+
+pub fn from_turn_to_player_value(turn: usize) -> i64 {
+    return if turn % 2 == 1 { VALUE_O } else { VALUE_X };
 }
 
 
